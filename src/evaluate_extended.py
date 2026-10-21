@@ -21,7 +21,11 @@ OUT.mkdir(parents=True, exist_ok=True)
 DATASETS = {
     "synthetic": ROOT / "data" / "processed_workload.csv",
     "measured": ROOT / "data" / "real_workload.csv",
+    "alibaba": ROOT / "data" / "alibaba_workload.csv",
 }
+
+# Limit Alibaba scheduling evaluation for tractable SDER runtime.
+ALIBABA_TEST_LIMIT = 120
 
 
 def get_metrics(actual, predicted):
@@ -31,7 +35,6 @@ def get_metrics(actual, predicted):
     mae = mean_absolute_error(actual, predicted)
     rmse = np.sqrt(mean_squared_error(actual, predicted))
 
-    # Actual bursts are strictly positive in our datasets.
     mape = np.mean(
         np.abs((actual - predicted) / actual)
     ) * 100
@@ -53,16 +56,27 @@ def get_sder(result):
 
 
 def get_throughput(df):
-    # Number of completed processes per simulated time unit.
     start = df["arrival_time"].min()
     end = df["completion_time"].max()
     elapsed = end - start
-
     return len(df) / elapsed if elapsed > 0 else float("nan")
 
 
 def evaluate_dataset(name, path):
     df = pd.read_csv(path)
+
+    required = [
+        "process_id",
+        "arrival_time",
+        "historical_burst",
+        "actual_burst"
+    ]
+    missing = [c for c in required if c not in df.columns]
+    if missing:
+        raise ValueError(
+            f"{name} missing required columns: {missing}"
+        )
+
     df = df.sort_values(
         ["arrival_time", "process_id"]
     ).reset_index(drop=True)
@@ -74,12 +88,14 @@ def evaluate_dataset(name, path):
     train = df.iloc[:split].copy()
     test = df.iloc[split:].copy()
 
+    if name == "alibaba":
+        test = test.head(ALIBABA_TEST_LIMIT).copy()
+
     feature_cols = ["historical_burst"]
     x_train = train[feature_cols]
     y_train = train["actual_burst"]
     x_test = test[feature_cols]
 
-    # Existing exponential-style baseline.
     alpha = 0.5
     test["pred_exp"] = (
         alpha * test["historical_burst"]
@@ -201,6 +217,7 @@ def main():
     print("\nSaved:")
     print("results/extended/prediction_metrics.csv")
     print("results/extended/scheduling_metrics.csv")
+    print("results/extended/alibaba_predictions.csv")
 
 
 if __name__ == "__main__":
