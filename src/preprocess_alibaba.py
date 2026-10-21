@@ -143,7 +143,15 @@ def main():
             "task_id",
         ],
         kind="stable",
-    ).head(3000).reset_index(drop=True)
+    ).reset_index(drop=True)
+    
+    sample_indices = np.linspace(
+        0,
+        len(data) - 1,
+        num=min(3000, len(data)),
+        dtype=int,
+    )
+    data = data.iloc[sample_indices].copy().reset_index(drop=True)
 
     if len(data) < 500:
         raise RuntimeError(
