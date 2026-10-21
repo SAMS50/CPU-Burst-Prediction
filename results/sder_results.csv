@@ -1,0 +1,7 @@
+scheduler,method,incorrect_pairs,eligible_pairs,sder_percent
+SJF,Oracle,0,791507,0.0
+SJF,Exponential Averaging,228059,950377,23.996687630277247
+SJF,Linear Regression,228059,950377,23.996687630277247
+SRTF,Oracle,0,1008881,0.0
+SRTF,Exponential Averaging,287381,1263951,22.736720015253756
+SRTF,Linear Regression,286966,1260898,22.75885916227958
